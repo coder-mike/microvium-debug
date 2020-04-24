@@ -1,0 +1,11 @@
+{
+  "name": "microvium-debug",
+  "version": "0.0.1",
+  "description": "VS Code extension and debug adapter for microvium debug protocol",
+  "main": "./out/extension",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Michael Hunter",
+  "license": "MIT"
+}
