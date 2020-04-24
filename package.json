@@ -48,7 +48,7 @@
     ],
     "debuggers": [
       {
-        "type": "microviumdebug",
+        "type": "microvium-debug",
         "label": "Microvium Debug",
         "runtime": "node"
       }

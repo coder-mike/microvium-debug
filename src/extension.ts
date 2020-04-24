@@ -16,7 +16,7 @@ export function activate(context: vscode.ExtensionContext) {
 		  return new vscode.DebugAdapterInlineImplementation(new MicroviumDebugSession());
     }
   };
-	context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('microviumdebug', factory));
+	context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('microvium-debug', factory));
 }
 
 export function deactivate() {}
