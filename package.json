@@ -25,7 +25,9 @@
     "package": "vsce package"
   },
   "dependencies": {
-    "vscode-debugadapter": "^1.40.0"
+    "await-notify": "^1.0.1",
+    "vscode-debugadapter": "^1.40.0",
+    "vscode-debugprotocol": "^1.40.0"
   },
   "devDependencies": {
     "@types/mocha": "^7.0.2",
@@ -40,58 +42,68 @@
     "onDebug"
   ],
   "contributes": {
+    "breakpoints": [
+      {
+        "language": "javascript"
+      }
+    ],
     "commands": [
       {
         "command": "microvium-debug.helloWorld",
         "title": "Hello World"
       }
     ],
+    "configurationDefaults": {
+      "files.associations": {
+        "*.mvms": "javascript"
+      }
+    },
     "debuggers": [
       {
         "type": "microvium-debug",
         "label": "Microvium Debug",
         "runtime": "node",
         "configurationAttributes": {
-					"launch": {
-						"required": [
-							"program"
-						],
-						"properties": {
-							"program": {
-								"type": "string",
+          "launch": {
+            "required": [
+              "program"
+            ],
+            "properties": {
+              "program": {
+                "type": "string",
                 "description": "Microvium entry file",
                 "required": true
-							},
-							"stopOnEntry": {
-								"type": "boolean",
-								"description": "Automatically stop after launch.",
-								"default": true
-							}
-						}
-					}
-				},
-				"initialConfigurations": [
-					{
-						"type": "microvium-debug",
-						"request": "launch",
-						"name": "Debug Microvium",
-						"program": "${workspaceFolder}/app.mvms",
-						"stopOnEntry": true
-					}
+              },
+              "stopOnEntry": {
+                "type": "boolean",
+                "description": "Automatically stop after launch.",
+                "default": true
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "type": "microvium-debug",
+            "request": "launch",
+            "name": "Debug Microvium",
+            "program": "${workspaceFolder}/app.mvms",
+            "stopOnEntry": true
+          }
         ],
         "configurationSnippets": [
-					{
-						"label": "Microvium: Launch",
-						"description": "Launch microvium program",
-						"body": {
-							"type": "microvium-debug",
-							"request": "launch",
-							"name": "Launch microvium program",
-							"program": "^\"\\${workspaceFolder}/app.mvms\"",
-							"stopOnEntry": true
-						}
-					}
-				]
+          {
+            "label": "Microvium: Launch",
+            "description": "Launch microvium program",
+            "body": {
+              "type": "microvium-debug",
+              "request": "launch",
+              "name": "Launch microvium program",
+              "program": "^\"\\${workspaceFolder}/app.mvms\"",
+              "stopOnEntry": true
+            }
+          }
+        ]
       }
     ]
   }
