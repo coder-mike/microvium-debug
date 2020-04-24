@@ -24,7 +24,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "package": "vsce package"
   },
-  "dependencies": {},
+  "dependencies": {
+    "vscode-debugadapter": "^1.40.0"
+  },
   "devDependencies": {
     "@types/mocha": "^7.0.2",
     "@types/node": "^13.13.2",
@@ -34,14 +36,21 @@
     "vsce": "^1.75.0"
   },
   "activationEvents": [
-    "onDebug",
-    "onCommand:microvium-debug.helloWorld"
+    "onCommand:microvium-debug.helloWorld",
+    "onDebug"
   ],
   "contributes": {
     "commands": [
       {
         "command": "microvium-debug.helloWorld",
         "title": "Hello World"
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "microviumdebug",
+        "label": "Microvium Debug",
+        "runtime": "node"
       }
     ]
   }
