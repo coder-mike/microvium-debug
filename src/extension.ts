@@ -7,19 +7,20 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.showInformationMessage('Hello World from test!');
   }));
 
-  const factory: vscode.DebugAdapterDescriptorFactory = {
-		createDebugAdapterDescriptor(
-      session: vscode.DebugSession,
-      executable: vscode.DebugAdapterExecutable | undefined
-    ): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
-      console.log('x createDebugAdapterDescriptor');
-		  return new vscode.DebugAdapterInlineImplementation(new MicroviumDebugSession());
-    }
-  };
-	context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('microvium-debug', factory));
+	context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('microvium-debug', new MicroviumDebugAdapterDescriptorFactory));
 }
 
 export function deactivate() {}
+
+class MicroviumDebugAdapterDescriptorFactory implements vscode.DebugAdapterDescriptorFactory {
+  createDebugAdapterDescriptor(
+    session: vscode.DebugSession,
+    executable: vscode.DebugAdapterExecutable | undefined
+  ): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
+    console.log('x createDebugAdapterDescriptor');
+    return new vscode.DebugAdapterInlineImplementation(new MicroviumDebugSession());
+  }
+};
 
 class MicroviumDebugSession extends LoggingDebugSession {
   constructor() {
