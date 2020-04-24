@@ -3,9 +3,46 @@
   "version": "0.0.1",
   "description": "VS Code extension and debug adapter for microvium debug protocol",
   "main": "./out/extension",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "author": "Michael Hunter",
-  "license": "MIT"
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.44.0"
+  },
+  "categories": [
+    "Debuggers"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/coder-mike/microvium-debug.git"
+  },
+  "bugs": {
+    "url": "https://github.com/coder-mike/microvium-debug/issues"
+  },
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc -w",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "package": "vsce package"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/mocha": "^7.0.2",
+    "@types/node": "^13.13.2",
+    "@types/vscode": "^1.44.0",
+    "mocha": "^7.1.1",
+    "typescript": "^3.8.3",
+    "vsce": "^1.75.0"
+  },
+  "activationEvents": [
+    "onDebug",
+    "onCommand:microvium-debug.helloWorld"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "microvium-debug.helloWorld",
+        "title": "Hello World"
+      }
+    ]
+  }
 }
