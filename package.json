@@ -42,11 +42,6 @@
     "onDebug"
   ],
   "contributes": {
-    "breakpoints": [
-      {
-        "language": "javascript"
-      }
-    ],
     "commands": [
       {
         "command": "microvium-debug.helloWorld",
