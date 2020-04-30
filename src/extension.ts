@@ -166,10 +166,10 @@ class MicroviumDebugSession extends LoggingDebugSession {
     this.sendResponse(response);
   }
 
-  // protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
-  //   this.runtime.continue(this.entryPointFile!, 'forwards');
-  //   this.sendResponse(response);
-  // }
+  protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
+    this.debuggerEventEmitter.emit('from-debugger:continue-request');
+    this.sendResponse(response);
+  }
 
   // protected reverseContinueRequest(response: DebugProtocol.ReverseContinueResponse, args: DebugProtocol.ReverseContinueArguments): void {
   //   this.runtime.continue(this.entryPointFile!, 'backwards');
@@ -178,7 +178,6 @@ class MicroviumDebugSession extends LoggingDebugSession {
 
   protected async nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments) {
     this.debuggerEventEmitter.emit('from-debugger:step-request');
-
     this.sendResponse(response);
   }
 
