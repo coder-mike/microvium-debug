@@ -141,7 +141,7 @@ class MicroviumDebugSession extends LoggingDebugSession {
             this.convertDebuggerPathToClient(data.filePath),
             undefined,
             undefined,
-            '{test-data}'
+            '{placeholder-source-data}'
           ),
           this.convertDebuggerLineToClient(data.line),
           this.convertDebuggerColumnToClient(data.column)
@@ -158,7 +158,7 @@ class MicroviumDebugSession extends LoggingDebugSession {
   protected scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments, request?: DebugProtocol.Request): void {
     response.body = {
       scopes: [{
-        name: '{scope}',
+        name: '{placeholder-scope}',
         variablesReference: 0,
         expensive: false
       }]
