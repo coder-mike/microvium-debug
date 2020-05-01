@@ -91,7 +91,7 @@ class MicroviumDebugSession extends LoggingDebugSession {
 
     const vm = new VirtualMachineFriendly(undefined, {}, {}, this.debuggerEventEmitter);
     try {
-      vm.importNow({ sourceText: fs.readFileSync(args.program, 'utf8'), debugFilename: args.program });
+      vm.evaluateModule({ sourceText: fs.readFileSync(args.program, 'utf8'), debugFilename: args.program });
     } catch (e) {
       console.error(e);
     }
@@ -185,29 +185,36 @@ class MicroviumDebugSession extends LoggingDebugSession {
   //   this.sendResponse(response);
   // }
 
-  // protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
-  //   const file = args.source.path || unexpected();
-  //   const clientLines = args.lines || [];
+  protected async setBreakPointsRequest(
+    response: DebugProtocol.SetBreakpointsResponse,
+    args: DebugProtocol.SetBreakpointsArguments
+  ) {
+    // QUESTION When can this happen?
+    if (!args.source.path) return;
 
-  //   // clear all breakpoints for this file
-  //   this.runtime.clearBreakpoints(file);
+    // TODO Account for source being modified (see args.sourceModified)
 
-  //   // set and verify breakpoint locations
-  //   const actualBreakpoints = clientLines.map(l => {
-  //     let { verified, line, id } = this.runtime.setBreakPoint(file, this.convertClientLineToDebugger(l));
-  //     const bp = <DebugProtocol.Breakpoint>new Breakpoint(verified, this.convertDebuggerLineToClient(line));
-  //     bp.id = id;
-  //     return bp;
-  //   });
+    this.debuggerEventEmitter.emit('from-debugger:set-and-verify-breakpoints', {
+      filePath: args.source.path,
+      breakpoints: args.breakpoints || []
+    });
 
-  //   // send back the actual breakpoint positions
-  //   response.body = {
-  //     breakpoints: actualBreakpoints
-  //   };
-  //   this.sendResponse(response);
-  // }
+    const verifiedBreakpoints = await new Promise<DebugProtocol.SourceBreakpoint[]>(resolve =>
+      this.debuggerEventEmitter.on('from-app:verified-breakpoints', resolve))
+        // TODO Look into what happens if a Source object was passed into the
+        // Breakpoint constructor
+        // TODO Also, look into whether BP IDs are needed
+        .then(bps => bps.map(bp => new Breakpoint(true, bp.line, bp.column)));
 
-  // protected breakpointLocationsRequest(response: DebugProtocol.BreakpointLocationsResponse, args: DebugProtocol.BreakpointLocationsArguments, request?: DebugProtocol.Request): void {
+    response.body = { breakpoints: verifiedBreakpoints };
+    this.sendResponse(response);
+  }
+
+  // protected breakpointLocationsRequest(
+  //   response: DebugProtocol.BreakpointLocationsResponse,
+  //   args: DebugProtocol.BreakpointLocationsArguments,
+  //   request?: DebugProtocol.Request
+  // ): void {
   //   if (args.source.path) {
   //     const bps = this.runtime.getBreakpoints(args.source.path, this.convertClientLineToDebugger(args.line));
   //     response.body = {
