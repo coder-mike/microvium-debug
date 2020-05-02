@@ -223,27 +223,22 @@ class MicroviumDebugSession extends LoggingDebugSession {
     this.sendResponse(response);
   }
 
-  // protected breakpointLocationsRequest(
-  //   response: DebugProtocol.BreakpointLocationsResponse,
-  //   args: DebugProtocol.BreakpointLocationsArguments,
-  //   request?: DebugProtocol.Request
-  // ): void {
-  //   if (args.source.path) {
-  //     const bps = this.runtime.getBreakpoints(args.source.path, this.convertClientLineToDebugger(args.line));
-  //     response.body = {
-  //       breakpoints: bps.map(col => {
-  //         return {
-  //           line: args.line,
-  //           column: this.convertDebuggerColumnToClient(col)
-  //         }
-  //       })
-  //     };
-  //   } else {
-  //     response.body = {
-  //       breakpoints: []
-  //     };
-  //   }
-  //   this.sendResponse(response);
-  // }
+  protected async breakpointLocationsRequest(
+    response: DebugProtocol.BreakpointLocationsResponse,
+    args: DebugProtocol.BreakpointLocationsArguments,
+  ) {
+    if (!args.source.path) return;
+
+    this.debuggerEventEmitter.emit('from-debugger:get-breakpoints', { filePath: args.source.path });
+    const breakpoints: DebugProtocol.SourceBreakpoint[] =
+      await new Promise(resolve => this.debuggerEventEmitter.on('from-app:breakpoints', resolve));
+
+    response.body = {
+      // TODO What are endLine/Column for? Also, what about the breakpoint
+      // conditions,etc?
+      breakpoints: breakpoints.map(bp => ({ line: bp.line, column: bp.column }))
+    };
+    this.sendResponse(response);
+  }
 
 }
