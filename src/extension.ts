@@ -207,10 +207,10 @@ class MicroviumDebugSession extends LoggingDebugSession {
 
     const verifiedBreakpoints = await new Promise<DebugProtocol.SourceBreakpoint[]>(resolve =>
       this.debuggerEventEmitter.on('from-app:verified-breakpoints', resolve))
-        // TODO Look into what happens if a Source object was passed into the
-        // Breakpoint constructor
-        // TODO Also, look into whether BP IDs are needed
-        .then(bps => bps.map(bp => new Breakpoint(true, bp.line, bp.column)));
+      // TODO Look into what happens if a Source object was passed into the
+      // Breakpoint constructor
+      // TODO Also, look into whether BP IDs are needed
+      .then(bps => bps.map(bp => new Breakpoint(true, bp.line, bp.column)));
 
     response.body = { breakpoints: verifiedBreakpoints };
     this.sendResponse(response);
