@@ -191,10 +191,17 @@ class MicroviumDebugSession extends LoggingDebugSession {
   //   this.sendResponse(response);
   // }
 
+  /** Called as part of the initialization event and whenever the user
+   * adds/removes/updates breakpoints */
   protected async setBreakPointsRequest(
     response: DebugProtocol.SetBreakpointsResponse,
     args: DebugProtocol.SetBreakpointsArguments
   ) {
+    // This log message shows that the VM instrumentation happens after this
+    // (specifically in the Launch event), hence, the VM does not reply anything
+    // (which is the root cause of breakpoints not being set unless they're set
+    // after the debug session has started)
+    console.log('DEBUGGER: SETBREAKPOINT REQUEST ', args.source.path);
     // QUESTION When can this happen?
     if (!args.source.path) return;
 
