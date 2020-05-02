@@ -161,14 +161,49 @@ class MicroviumDebugSession extends LoggingDebugSession {
     this.sendResponse(response);
   }
 
-  protected scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments, request?: DebugProtocol.Request): void {
-    response.body = {
-      scopes: [{
-        name: '{placeholder-scope}',
-        variablesReference: 0,
-        expensive: false
-      }]
-    }
+  protected async scopesRequest(
+    response: DebugProtocol.ScopesResponse,
+    args: DebugProtocol.ScopesArguments,
+    request?: DebugProtocol.Request
+  ) {
+    // Commented for now, due to the fact that Scopes are requested at the
+    // beginning, when VM instrumentation hasn't been done yet
+    //
+    // console.log('FROM DEBUGGER: SCOPES REQUEST');
+    // this.debuggerEventEmitter.emit('from-debugger:scopes-request');
+    // const scopes = await new Promise<DebugProtocol.Scope[]>(resolve =>
+    //   this.debuggerEventEmitter.on('from-app:scopes', resolve));
+    // console.log('FROM APP: SCOPES', JSON.stringify(scopes, null, 2));
+
+    // Remove these hardcoded scopes once we properly implement the VM to do
+    // instrumentation in its constructor
+    const scopes: DebugProtocol.Scope[] = [{
+      name: 'Globals',
+      variablesReference: 1,
+      expensive: false
+    }, {
+      name: 'Current Frame',
+      variablesReference: 2,
+      expensive: false
+    }, {
+      name: 'Current Operation',
+      variablesReference: 3,
+      expensive: false
+    }]
+    response.body = { scopes };
+    this.sendResponse(response);
+  }
+
+  protected async variablesRequest(
+    response: DebugProtocol.VariablesResponse,
+    args: DebugProtocol.VariablesArguments,
+    request?: DebugProtocol.Request
+  ) {
+    console.log('DEBUGGER: VARIABLES REQUEST', JSON.stringify(args.variablesReference));
+    this.debuggerEventEmitter.emit('from-debugger:variables-request', args.variablesReference);
+    const variables = await new Promise<DebugProtocol.Variable[]>(resolve =>
+      this.debuggerEventEmitter.on('from-app:variables', resolve));
+    response.body = { variables };
     this.sendResponse(response);
   }
 
