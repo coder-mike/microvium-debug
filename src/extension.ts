@@ -64,8 +64,14 @@ class MicroviumDebugSession extends LoggingDebugSession {
    * The 'initialize' request is the first request called by the frontend
    * to interrogate the features the debug adapter provides.
    */
-  protected initializeRequest(response: DebugProtocol.InitializeResponse, args: DebugProtocol.InitializeRequestArguments) {
-    // console.log('Init args', JSON.stringify(args, null, 2));
+  protected initializeRequest(
+    response: DebugProtocol.InitializeResponse,
+    args: DebugProtocol.InitializeRequestArguments
+  ) {
+    response.body = {
+      supportsBreakpointLocationsRequest: true
+    };
+    console.log('Init args', JSON.stringify(args, null, 2));
     this.sendResponse(response);
     this.sendEvent(new InitializedEvent());
   }
