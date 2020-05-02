@@ -213,7 +213,7 @@ class MicroviumDebugSession extends LoggingDebugSession {
     });
 
     const verifiedBreakpoints = await new Promise<DebugProtocol.SourceBreakpoint[]>(resolve =>
-      this.debuggerEventEmitter.on('from-app:verified-breakpoints', resolve))
+      this.debuggerEventEmitter.once('from-app:verified-breakpoints', resolve))
       // TODO Look into what happens if a Source object was passed into the
       // Breakpoint constructor
       // TODO Also, look into whether BP IDs are needed
@@ -231,7 +231,7 @@ class MicroviumDebugSession extends LoggingDebugSession {
 
     this.debuggerEventEmitter.emit('from-debugger:get-breakpoints', { filePath: args.source.path });
     const breakpoints: DebugProtocol.SourceBreakpoint[] =
-      await new Promise(resolve => this.debuggerEventEmitter.on('from-app:breakpoints', resolve));
+      await new Promise(resolve => this.debuggerEventEmitter.once('from-app:breakpoints', resolve));
 
     response.body = {
       // TODO What are endLine/Column for? Also, what about the breakpoint
