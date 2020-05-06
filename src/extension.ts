@@ -5,8 +5,8 @@ import { basename } from 'path';
 import { SimpleRuntime, MockBreakpoint } from './simple-runtime';
 import { unexpected } from './utils';
 import * as fs from 'fs';
-import { VirtualMachineFriendly } from 'microvium';
 import { EventEmitter } from 'events';
+import WebSocket from 'ws';
 const { Subject: AwaitNotifySubject } = require('await-notify');
 
 const threadId = 1;
@@ -54,26 +54,46 @@ network), so it might help to reference this documentation:
 
 class MicroviumDebugSession extends LoggingDebugSession {
   private configurationDone = new AwaitNotifySubject();
+  private debugClientWebSocketOpen = new AwaitNotifySubject();
+  // TODO | HIGH | Raf: Fix the code so this event emitter isn't needed
   private debuggerEventEmitter = new EventEmitter();
+  private debugClientWebSocket: typeof WebSocket; 
 
   constructor() {
     super("microvium-debug.txt");
+
+    this.debuggerEventEmitter.on('from-app:stop-on-entry', () => this.sendEvent(new StoppedEvent('entry', threadId)));
+    this.debuggerEventEmitter.on('from-app:stop-on-step', () => this.sendEvent(new StoppedEvent('step', threadId)));
+    this.debuggerEventEmitter.on('from-app:stop-on-breakpoint', () => this.sendEvent(new StoppedEvent('breakpoint', threadId)));
+
+    this.debugClientWebSocket = new WebSocket('ws://localhost:8080', {});
+    this.debugClientWebSocket.on('message', (messageStr: string) => {
+      const { type, data } = JSON.parse(messageStr);
+      console.log('WS MESSAGE:', messageStr);
+      this.debuggerEventEmitter.emit(type, data);
+    });
+    this.debugClientWebSocket.on('open', () => {
+      this.debugClientWebSocketOpen.notify();
+      console.log('Open sesame');
+    });
+  }
+
+  private sendToVM(message: { type: string, data?: any }) {
+    this.debugClientWebSocket.send(JSON.stringify(message));
   }
 
   /**
    * The 'initialize' request is the first request called by the frontend
    * to interrogate the features the debug adapter provides.
    */
-  protected initializeRequest(
+  protected async initializeRequest(
     response: DebugProtocol.InitializeResponse,
     args: DebugProtocol.InitializeRequestArguments
   ) {
-    response.body = {
-      supportsBreakpointLocationsRequest: true
-    };
     console.log('Init args', JSON.stringify(args, null, 2));
     this.sendResponse(response);
     this.sendEvent(new InitializedEvent());
+
   }
 
   protected async launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequestArguments) {
@@ -91,27 +111,19 @@ class MicroviumDebugSession extends LoggingDebugSession {
     // Wait until configuration has finished (and configurationDoneRequest has been called)
     await this.configurationDone.wait(1000);
 
-    this.debuggerEventEmitter.on('from-app:stop-on-entry', () => this.sendEvent(new StoppedEvent('entry', threadId)));
-    this.debuggerEventEmitter.on('from-app:stop-on-step', () => this.sendEvent(new StoppedEvent('step', threadId)));
-    this.debuggerEventEmitter.on('from-app:stop-on-breakpoint', () => this.sendEvent(new StoppedEvent('breakpoint', threadId)));
-
-    const vm = new VirtualMachineFriendly(undefined, {}, {}, this.debuggerEventEmitter);
-    try {
-      vm.evaluateModule({ sourceText: fs.readFileSync(args.program, 'utf8'), debugFilename: args.program });
-    } catch (e) {
-      console.error(e);
-    }
   }
 
   /**
    * Called at the end of the configuration sequence.
    * Indicates that all breakpoints etc. have been sent to the DA and that the 'launch' can start.
    */
-  protected configurationDoneRequest(
+  protected async configurationDoneRequest(
     response: DebugProtocol.ConfigurationDoneResponse,
     args: DebugProtocol.ConfigurationDoneArguments
-  ): void {
+  ) {
     super.configurationDoneRequest(response, args);
+
+    // await this.debugClientWebSocketOpen.wait(1000);
 
     // Notify the launchRequest that configuration has finished
     this.configurationDone.notify();
@@ -128,14 +140,13 @@ class MicroviumDebugSession extends LoggingDebugSession {
   }
 
   protected async stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments) {
-    this.debuggerEventEmitter.emit('from-debugger:stack-request');
+    console.log('FROM DEBUGGER: STACK REQUEST');
+    this.sendToVM({ type: 'from-debugger:stack-request'});
 
     const stackFrames = await new Promise<any[]>(resolve => {
       this.debuggerEventEmitter.once('from-app:stack', resolve);
     });
-
-    // console.log('debugger:stack-received');
-    // console.log(JSON.stringify(stackFrames, null, 2));
+    console.log('FROM APP: STACK');
 
     response.body = {
       stackFrames: stackFrames.map((data, i) =>
@@ -156,8 +167,6 @@ class MicroviumDebugSession extends LoggingDebugSession {
       totalFrames: stackFrames.length
     };
 
-    // console.log('debugger:stack-response');
-    // console.log(JSON.stringify(response.body.stackFrames, null, 2));
     this.sendResponse(response);
   }
 
@@ -166,30 +175,12 @@ class MicroviumDebugSession extends LoggingDebugSession {
     args: DebugProtocol.ScopesArguments,
     request?: DebugProtocol.Request
   ) {
-    // Commented for now, due to the fact that Scopes are requested at the
-    // beginning, when VM instrumentation hasn't been done yet
-    //
-    // console.log('FROM DEBUGGER: SCOPES REQUEST');
-    // this.debuggerEventEmitter.emit('from-debugger:scopes-request');
-    // const scopes = await new Promise<DebugProtocol.Scope[]>(resolve =>
-    //   this.debuggerEventEmitter.on('from-app:scopes', resolve));
-    // console.log('FROM APP: SCOPES', JSON.stringify(scopes, null, 2));
+    console.log('FROM DEBUGGER: SCOPES REQUEST');
+    this.sendToVM({ type: 'from-debugger:scopes-request' });
+    const scopes = await new Promise<DebugProtocol.Scope[]>(resolve =>
+      this.debuggerEventEmitter.on('from-app:scopes', resolve));
+    console.log('FROM APP: SCOPES', JSON.stringify(scopes, null, 2));
 
-    // Remove these hardcoded scopes once we properly implement the VM to do
-    // instrumentation in its constructor
-    const scopes: DebugProtocol.Scope[] = [{
-      name: 'Globals',
-      variablesReference: 1,
-      expensive: false
-    }, {
-      name: 'Current Frame',
-      variablesReference: 2,
-      expensive: false
-    }, {
-      name: 'Current Operation',
-      variablesReference: 3,
-      expensive: false
-    }]
     response.body = { scopes };
     this.sendResponse(response);
   }
@@ -200,7 +191,7 @@ class MicroviumDebugSession extends LoggingDebugSession {
     request?: DebugProtocol.Request
   ) {
     console.log('DEBUGGER: VARIABLES REQUEST', JSON.stringify(args.variablesReference));
-    this.debuggerEventEmitter.emit('from-debugger:variables-request', args.variablesReference);
+    this.sendToVM({ type: 'from-debugger:variables-request', data: args.variablesReference });
     const variables = await new Promise<DebugProtocol.Variable[]>(resolve =>
       this.debuggerEventEmitter.on('from-app:variables', resolve));
     response.body = { variables };
@@ -208,43 +199,39 @@ class MicroviumDebugSession extends LoggingDebugSession {
   }
 
   protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
-    this.debuggerEventEmitter.emit('from-debugger:continue-request');
+    this.sendToVM({ type: 'from-debugger:continue-request' });
     this.sendResponse(response);
   }
-
-  // protected reverseContinueRequest(response: DebugProtocol.ReverseContinueResponse, args: DebugProtocol.ReverseContinueArguments): void {
-  //   this.runtime.continue(this.entryPointFile!, 'backwards');
-  //   this.sendResponse(response);
-  // }
 
   protected async nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments) {
-    this.debuggerEventEmitter.emit('from-debugger:step-request');
+    console.log('HEEEEEEEEEEEEEEEEEEEEEEEEEEEEERE');
+    this.sendToVM({ type: 'from-debugger:step-initiation-request' });
+    await new Promise(resolve => this.debuggerEventEmitter.once('from-app:step-initiation-request-accepted', resolve));
+    this.sendToVM({ type: 'from-debugger:step-request' });
     this.sendResponse(response);
   }
 
-  // protected stepBackRequest(response: DebugProtocol.StepBackResponse, args: DebugProtocol.StepBackArguments): void {
-  //   this.sendResponse(response);
-  // }
-
-  /** Called as part of the initialization event and whenever the user
-   * adds/removes/updates breakpoints */
+  /** 
+   * Called as part of the initialization event and whenever the user
+   * adds/removes/updates breakpoints 
+   */
   protected async setBreakPointsRequest(
     response: DebugProtocol.SetBreakpointsResponse,
     args: DebugProtocol.SetBreakpointsArguments
   ) {
-    // This log message shows that the VM instrumentation happens after this
-    // (specifically in the Launch event), hence, the VM does not reply anything
-    // (which is the root cause of breakpoints not being set unless they're set
-    // after the debug session has started)
-    console.log('DEBUGGER: SETBREAKPOINT REQUEST ', args.source.path);
     // QUESTION When can this happen?
     if (!args.source.path) return;
 
-    // TODO Account for source being modified (see args.sourceModified)
+    // For some reason, this is one of the first requests so we have to make
+    // sure that the WS connection is ready
+    await this.debugClientWebSocketOpen.wait(1500);
 
-    this.debuggerEventEmitter.emit('from-debugger:set-and-verify-breakpoints', {
-      filePath: args.source.path,
-      breakpoints: args.breakpoints || []
+    // TODO Account for source being modified (see args.sourceModified)
+    this.sendToVM({
+      type: 'from-debugger:set-and-verify-breakpoints', data: {
+        filePath: args.source.path,
+        breakpoints: args.breakpoints || []
+      }
     });
 
     const verifiedBreakpoints = await new Promise<DebugProtocol.SourceBreakpoint[]>(resolve =>
@@ -264,7 +251,7 @@ class MicroviumDebugSession extends LoggingDebugSession {
   ) {
     if (!args.source.path) return;
 
-    this.debuggerEventEmitter.emit('from-debugger:get-breakpoints', { filePath: args.source.path });
+    this.sendToVM({ type: 'from-debugger:get-breakpoints', data: { filePath: args.source.path } });
     const breakpoints: DebugProtocol.SourceBreakpoint[] =
       await new Promise(resolve => this.debuggerEventEmitter.once('from-app:breakpoints', resolve));
 

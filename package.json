@@ -25,9 +25,11 @@
     "package": "vsce package"
   },
   "dependencies": {
+    "@types/ws": "^7.2.4",
     "await-notify": "^1.0.1",
     "vscode-debugadapter": "^1.40.0",
-    "vscode-debugprotocol": "^1.40.0"
+    "vscode-debugprotocol": "^1.40.0",
+    "ws": "^7.2.5"
   },
   "devDependencies": {
     "@types/mocha": "^7.0.2",
