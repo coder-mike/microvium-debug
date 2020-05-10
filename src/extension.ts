@@ -68,11 +68,12 @@ class MicroviumDebugSession extends LoggingDebugSession {
 
     this.debugClientWebSocket = new WebSocket('ws://localhost:8080', {});
     this.debugClientWebSocket.on('message', (messageStr: string) => {
-      const { type, data } = JSON.parse(messageStr);
       console.log('WS MESSAGE:', messageStr);
+      const { type, data } = JSON.parse(messageStr);
       this.debuggerEventEmitter.emit(type, data);
     });
     this.debugClientWebSocket.on('open', () => {
+      this.sendToVM({ type: 'from-debugger:start-session' });
       this.debugClientWebSocketOpen.notify();
       console.log('Open sesame');
     });
@@ -203,10 +204,7 @@ class MicroviumDebugSession extends LoggingDebugSession {
     this.sendResponse(response);
   }
 
-  protected async nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments) {
-    console.log('HEEEEEEEEEEEEEEEEEEEEEEEEEEEEERE');
-    this.sendToVM({ type: 'from-debugger:step-initiation-request' });
-    await new Promise(resolve => this.debuggerEventEmitter.once('from-app:step-initiation-request-accepted', resolve));
+  protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments) {
     this.sendToVM({ type: 'from-debugger:step-request' });
     this.sendResponse(response);
   }
